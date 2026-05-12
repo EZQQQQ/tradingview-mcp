@@ -32,3 +32,49 @@ Provide a structured report with:
 2. Key metrics table
 3. Strengths and weaknesses
 4. Specific, actionable recommendations
+
+## Vault Write
+
+After producing the analysis report, write results to Obsidian using the trading-vault MCP tools.
+
+### Inputs required
+Derive these from the chart state and analysis:
+- `strategy_id` — e.g. `ema_cross` (matches pine filename without extension)
+- `strategy_name` — title-cased with underscores, e.g. `EMA_Cross`
+- `ticker` — uppercase symbol, e.g. `NVDA`
+- `timeframe` — `D`, `4H`, `1H`, or `15M`
+- `period` — `2Y`, `1Y`, or `6M`
+- `start_date` / `end_date` — from backtest parameters
+- All key metrics from the analysis
+
+### Steps
+
+1. **Capture screenshot**
+   - Call `capture_screenshot` (TradingView MCP) — returns a local file path (e.g. `tradingview-mcp/screenshots/chart_20260512_143201.png`)
+   - Copy it into the vault using a Bash `cp` command:
+     ```bash
+     cp "{screenshot_output_path}" "/Users/ezqqqq/repos/my-trading-workspace/vault/Trading/Backtest Results/screenshots/{strategy_name}_{ticker}_{timeframe}_{period}.png"
+     ```
+   - Confirm the file exists at the vault destination before proceeding
+
+2. **Duplicate check**
+   - Read `vault/Trading/Backtest Results/_INDEX.md`
+   - Search for a row containing all four of: `strategy_name`, `ticker`, `timeframe`, `period`
+   - If found: stop, do not write, notify user: "Already tested: {strategy_name} on {ticker} {timeframe} {period}. Skipping vault write."
+   - If `_INDEX.md` does not exist yet: proceed (it will be created in step 4)
+
+3. **Write result file**
+   - File path: `vault/Trading/Backtest Results/{strategy_name}_{ticker}_{timeframe}_{period}.md`
+   - Use the template from `docs/superpowers/specs/2026-05-12-vault-backtest-logging-design.md` (Individual Result File Template section)
+   - Fill all metric values from the analysis
+   - Verdict: `Keep` if all gates pass, `Review` if mixed, `Discard` if all gates fail
+   - Gate thresholds: Sharpe > 1.0, Max Drawdown < 20%, Profit Factor > 1.0
+
+4. **Append index row**
+   - If `_INDEX.md` exists: append one table row
+   - If `_INDEX.md` does not exist: create it with header row first, then append
+   - Row format:
+     ```
+     | {strategy_name} | {ticker} | {timeframe} | {period} | {net_profit} | {win_rate} | {profit_factor} | {max_dd} | {verdict} | {notes} | [[{strategy_name}_{ticker}_{timeframe}_{period}]] |
+     ```
+   - Notes: blank for Keep/Discard; for Review, suggest next ticker or timeframe to test (e.g. "retry on MSFT, AMD")
